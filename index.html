@@ -185,20 +185,20 @@
             savedData[`${monthIndex}-remainingBudget`] = remainingBudget;
             localStorage.setItem('spendingCalendarData', JSON.stringify(savedData));
         }
-    <script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker
-            .register('./service-worker.js') // Path to your service worker file
-            .then(() => {
-                console.log('Service Worker registered successfully.');
-            })
-            .catch((error) => {
-                console.error('Service Worker registration failed:', error);
-            });
-    } else {
-        console.log('Service Workers are not supported in this browser.');
-    }
-</script>
+    </script>
 
+    <!-- Add this script for service worker registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker
+                .register('./service-worker.js')
+                .then(() => {
+                    console.log('Service Worker registered successfully.');
+                })
+                .catch((error) => {
+                    console.error('Service Worker registration failed:', error);
+                });
+        }
+    </script>
 </body>
 </html>
