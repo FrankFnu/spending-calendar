@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yearly Spending Calendar</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #121212;
+            color: #ffffff;
+        }
+        h1 {
+            margin-top: 20px;
+            color: #ffffff;
+        }
+        .month {
+            margin: 20px 0;
+            width: 90%;
+            max-width: 800px;
+            background: #1e1e1e;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        .month-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .budget-container {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #00ccff;
+        }
+        .budget-container input {
+            width: 100px;
+            padding: 5px;
+            font-size: 14px;
+            background: #121212;
+            color: #ffffff;
+            border: 1px solid #555;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+        .monthly-total {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #00ff99;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            width: 100%;
+        }
+        .day {
+            background: #292929;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        .day input {
+            width: 100%;
+            padding: 5px;
+            margin-top: 10px;
+            font-size: 14px;
+            background: #121212;
+            color: #ffffff;
+            border: 1px solid #555;
+            border-radius: 3px;
+        }
+        .day input::placeholder {
+            color: #888;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1>Yearly Spending Calendar</h1>
+    <script>
+        const months = [
+            "January", "February", "March", "April", "May", "June", 
+            "July", "August", "September", "October", "November", "December"
+        ];
+        const currentYear = new Date().getFullYear();
+
+        // Load saved data from localStorage
+        const savedData = JSON.parse(localStorage.getItem('spendingCalendarData')) || {};
+
+        months.forEach((month, index) => {
+            // Create a container for each month
+            const monthContainer = document.createElement('div');
+            monthContainer.className = 'month';
+
+            // Add the month title and budget input
+            monthContainer.innerHTML = `
+                <div class="month-title">${month} ${currentYear}</div>
+                <div class="budget-container">
+                    Budget: ₦<input type="number" id="budget-${index}" placeholder="Enter budget" value="${savedData[`${index}-budget`] || ''}" oninput="updateBudget(${index})">
+                </div>
+                <div class="monthly-total">Remaining Budget: ₦<span id="remaining-budget-${index}">${formatWithCommas(savedData[`${index}-remainingBudget`] || 0)}</span></div>
+                <div class="monthly-total">Total Spending: ₦<span id="monthly-total-${index}">${formatWithCommas(savedData[`${index}-totalSpending`] || 0)}</span></div>
+                <div class="calendar" id="calendar-${index}"></div>
+            `;
+
+            document.body.appendChild(monthContainer);
+
+            // Generate the days for the month
+            const daysInMonth = new Date(currentYear, index + 1, 0).getDate();
+            const calendarContainer = document.getElementById(`calendar-${index}`);
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayKey = `${index}-day-${day}`;
+                const savedValue = savedData[dayKey] || '';
+
+                const dayElement = document.createElement('div');
+                dayElement.className = 'day';
+                dayElement.innerHTML = `
+                    Day ${day}<br>
+                    <input type="number" placeholder="Spent" id="input-${dayKey}" value="${savedValue}" oninput="updateMonthlyTotal(this.value, ${index}, ${day})">
+                `;
+                calendarContainer.appendChild(dayElement);
+            }
+        });
+
+        function formatWithCommas(value) {
+            return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function updateMonthlyTotal(value, monthIndex, day) {
+            const dayKey = `${monthIndex}-day-${day}`;
+            const previousValue = parseFloat(savedData[dayKey]) || 0;
+            const spending = parseFloat(value) || 0;
+
+            // Save the input value to localStorage
+            savedData[dayKey] = spending;
+            localStorage.setItem('spendingCalendarData', JSON.stringify(savedData));
+
+            // Update the monthly total
+            const monthlyTotalElement = document.getElementById(`monthly-total-${monthIndex}`);
+            let currentTotal = parseFloat(monthlyTotalElement.textContent.replace(/,/g, "")) || 0;
+            currentTotal = currentTotal - previousValue + spending;
+            monthlyTotalElement.textContent = formatWithCommas(currentTotal.toFixed(2));
+
+            // Update remaining budget
+            const budgetInput = document.getElementById(`budget-${monthIndex}`);
+            const budget = parseFloat(budgetInput.value) || 0;
+            const remainingBudgetElement = document.getElementById(`remaining-budget-${monthIndex}`);
+            const remainingBudget = budget - currentTotal;
+            remainingBudgetElement.textContent = formatWithCommas(remainingBudget.toFixed(2));
+
+            // Save totals to localStorage
+            savedData[`${monthIndex}-totalSpending`] = currentTotal;
+            savedData[`${monthIndex}-remainingBudget`] = remainingBudget;
+            localStorage.setItem('spendingCalendarData', JSON.stringify(savedData));
+        }
+
+        function updateBudget(monthIndex) {
+            const budgetInput = document.getElementById(`budget-${monthIndex}`);
+            const budget = parseFloat(budgetInput.value) || 0;
+
+            // Save the budget to localStorage
+            savedData[`${monthIndex}-budget`] = budget;
+            localStorage.setItem('spendingCalendarData', JSON.stringify(savedData));
+
+            const monthlyTotalElement = document.getElementById(`monthly-total-${monthIndex}`);
+            const currentTotal = parseFloat(monthlyTotalElement.textContent.replace(/,/g, "")) || 0;
+
+            const remainingBudgetElement = document.getElementById(`remaining-budget-${monthIndex}`);
+            const remainingBudget = budget - currentTotal;
+            remainingBudgetElement.textContent = formatWithCommas(remainingBudget.toFixed(2));
+
+            // Save remaining budget to localStorage
+            savedData[`${monthIndex}-remainingBudget`] = remainingBudget;
+            localStorage.setItem('spendingCalendarData', JSON.stringify(savedData));
+        }
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+            .register('./service-worker.js') // Path to your service worker file
+            .then(() => {
+                console.log('Service Worker registered successfully.');
+            })
+            .catch((error) => {
+                console.error('Service Worker registration failed:', error);
+            });
+    } else {
+        console.log('Service Workers are not supported in this browser.');
+    }
+</script>
+
+</body>
+</html>
